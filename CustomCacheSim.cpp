@@ -1,17 +1,4 @@
-/**
- * CacheSim.c
- * This program is designed for class exercise only.
- * It is provided as is. There is no warranty or support of any kind.
- *
- * Krerk Piromsopa, Ph.D.
- * Department of Computer Engineering
- * Chulalongkorn University
- * Bangkok, Thailand.
- *
- * History
- * 2013 - Initial design
- * 2015 - Refactor/Clean code
- **/
+
 #include <stdio.h>
 #include <string.h>
 
@@ -40,8 +27,8 @@ class CacheSim {
     }
   }
 
-  int calAddr(unsigned long addr, unsigned long *tag, unsigned long *idx,
-              unsigned long *offset) {
+  void calAddr(unsigned long addr, unsigned long *tag, unsigned long *idx,
+               unsigned long *offset) {
     unsigned long tmp;
     int i;
     *tag = addr >> (OFFSETLEN + INDEXLEN);
@@ -61,7 +48,7 @@ class CacheSim {
 
   int findSetNumber(unsigned long tag, unsigned long idx) {
     for (int i = 0; i < SET_SIZE; i++) {
-      if (cache[i][idx].valid == 1 && cache[i][idx].tag == tag) {
+      if (cache[i][idx].valid && cache[i][idx].tag == tag) {
         return i;
       }
     }
@@ -72,43 +59,43 @@ class CacheSim {
     unsigned long offset, tag, idx;
     CURRENT_TIMESTAMP += 1;
     calAddr(addr, &tag, &idx, &offset);
-    int setNumber = this->findSetNumber(tag, idx);
+    int setNumber = findSetNumber(tag, idx);
     if (setNumber != -1) {
-      this->HIT++;
+      HIT++;
+      if (REPLACE_POLICY == 0)
+        cache[setNumber][idx].timestamp = CURRENT_TIMESTAMP;
     } else {
-      this->MISS++;
-      this->replacementPolicy(tag, idx, REPLACE_POLICY);
+      MISS++;
+      replacementPolicy(tag, idx, REPLACE_POLICY);
     }
   }
 
   void replacementPolicy(unsigned long tag, unsigned long idx, int type) {
-    switch (type) {
-      case 0:
-        LRU(tag, idx);
-      case 1:
-        RR(tag, idx);
-      default:
-        LRU(tag, idx);
-    }
+    if (type == 1)
+      RR(tag, idx);
+    else
+      LRU(tag, idx);
   }
 
   void LRU(unsigned long tag, unsigned long idx) {
     int minTimestampIndex = 0;
+    int minTimestamp = cache[0][idx].timestamp;
     for (int i = 0; i < SET_SIZE; i++) {
-      if (cache[i][idx].valid == 1 && cache[i][idx].tag == tag) {
+      if (cache[i][idx].timestamp < minTimestamp) {
+        minTimestamp = cache[i][idx].timestamp;
         minTimestampIndex = i;
       }
     }
     cache[minTimestampIndex][idx].tag = tag;
     cache[minTimestampIndex][idx].valid = 1;
-    cache[minTimestampIndex][idx].timestamp = this->CURRENT_TIMESTAMP;
+    cache[minTimestampIndex][idx].timestamp = CURRENT_TIMESTAMP;
   }
 
   void RR(unsigned long tag, unsigned long idx) {
-    int nextCacheSet = (currentCacheSet[idx] + 1) % SET_SIZE;
+    long long nextCacheSet = (currentCacheSet[idx] + 1) % SET_SIZE;
     cache[nextCacheSet][idx].tag = tag;
     cache[nextCacheSet][idx].valid = 1;
-    cache[nextCacheSet][idx].timestamp = this->CURRENT_TIMESTAMP;
+    cache[nextCacheSet][idx].timestamp = CURRENT_TIMESTAMP;
     currentCacheSet[idx] = nextCacheSet;
   }
 };
@@ -118,7 +105,6 @@ int main(int argc, char *argv[]) {
 
   printf("CacheSim v.2015\n");
   printf("This program is designed for class exercise only.\n");
-  printf("By Krerk Piromsopa, Ph.D.\n");
   FILE *input;
   char buff[1025];
   unsigned long myaddr;
@@ -132,5 +118,15 @@ int main(int argc, char *argv[]) {
     sscanf(buff, "0x%x", &myaddr);
     cacheSim.access(myaddr);
   }
-  printf("HIT:%7d MISS: %7d\n", cacheSim.HIT, cacheSim.MISS);
+  printf("SET SIZE: %d\n", SET_SIZE);
+  printf("METHOD: %s\n", REPLACE_POLICY == 0 ? "LRU" : "RR");
+  printf("BLOCK SIZE: %d\n", BLOCK_SIZE);
+  printf("INDEX SIZE: %d\n", INDEX_SIZE);
+  printf("CACHE SIZE: %d\n", CACHE_SIZE);
+  printf("HIT: %d\nMISS: %d\n", cacheSim.HIT, cacheSim.MISS);
+  long long all = cacheSim.HIT + cacheSim.MISS;
+  double hitrate = (double)cacheSim.HIT / (double)all;
+  double missrate = (double)cacheSim.MISS / (double)all;
+  printf("HIT rate: %.7f\nMISS rate: %.7f\n", hitrate, missrate);
+  return 0;
 }

@@ -12,14 +12,18 @@
 #define CACHESIM_H_INCLUDED
 
 /* Please adjust parameters here */
-#define REPLACE_POLICY 0  // 0 -> LRU, 1 -> RR
-#define SET_SIZE 1
-#define CACHE_SIZE 1024
-#define INDEX_SIZE 256
-#define BLOCK_SIZE 4
-#define TAGLEN 22
-#define INDEXLEN 8
-#define OFFSETLEN 2
+#define REPLACE_POLICY 1  // 0 -> LRU, 1 -> RR
+#define SET_SIZE 4
+#define BLOCK_SIZE_BITS 2  // log2 of BLOCK_SIZE
+#define BLOCK_SIZE (1 << BLOCK_SIZE_BITS)
+#define INDEX_SIZE_BITS 6  // log2 of INDEX_SIZE
+#define INDEX_SIZE (1 << INDEX_SIZE_BITS)
+#define CACHE_SIZE (SET_SIZE * BLOCK_SIZE * INDEX_SIZE)
+
+#define TAGLEN (32 - BLOCK_SIZE_BITS - INDEX_SIZE_BITS)
+#define INDEXLEN (INDEX_SIZE_BITS)
+#define OFFSETLEN (BLOCK_SIZE_BITS)
+
 typedef unsigned char Byte;
 typedef struct Cache {
   char valid;
